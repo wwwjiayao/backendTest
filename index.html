@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>股票数据展示 - AAPL</title>
+  <!-- 引入 ECharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #chart { width: 100%; height: 500px; }
+    #price { font-size: 18px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <h2>苹果公司（AAPL）股票行情</h2>
+  <div id="price">加载当前价格中...</div>
+  <div id="chart"></div>
+
+  <script>
+    // 设置股票 symbol（可改成 GOOG、MSFT 等）
+    const symbol = 'AAPL';
+
+    // 获取当前价格信息
+    fetch(`http://localhost:3000/api/quote/${symbol}`)
+      .then(res => res.json())
+      .then(data => {
+        // 提取当前价格字段
+        const price = data.regularMarketPrice;
+        const currency = data.currency || 'USD';
+
+        // 显示在页面上
+        document.getElementById('price').innerText = 
+          `当前价格：$${price} ${currency}`;
+      })
+      .catch(err => {
+        console.error('获取当前价格失败:', err);
+        document.getElementById('price').innerText = '获取价格失败';
+      });
+
+    // 获取历史价格（30天内收盘价）
+    fetch(`http://localhost:3000/api/history/${symbol}`)
+      .then(res => res.json())
+      .then(data => {
+        const dates = data.map(item => item.date.split('T')[0]);
+        const closes = data.map(item => item.close);
+
+        // 初始化 ECharts 图表
+        const chartDom = document.getElementById('chart');
+        const myChart = echarts.init(chartDom);
+
+        const option = {
+          title: {
+            text: `${symbol} 近30日收盘价`,
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'axis'
+          },
+          xAxis: {
+            type: 'category',
+            data: dates,
+            axisLabel: { rotate: 45 }
+          },
+          yAxis: {
+            type: 'value',
+            scale: true
+          },
+          series: [{
+            name: '收盘价',
+            type: 'line',
+            data: closes,
+            smooth: true,
+            lineStyle: { color: '#5470C6' }
+          }]
+        };
+
+        // 渲染图表
+        myChart.setOption(option);
+      })
+      .catch(err => {
+        console.error('获取历史数据失败:', err);
+        document.getElementById('chart').innerText = '图表加载失败';
+      });
+  </script>
+
+</body>
+</html>
